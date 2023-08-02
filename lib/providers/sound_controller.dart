@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_sound_lite/flutter_sound.dart';
+import 'package:path_provider/path_provider.dart';
 
 class SoundController extends ChangeNotifier {
   static final SoundController _instance = SoundController._internal();
@@ -10,6 +12,7 @@ class SoundController extends ChangeNotifier {
   SoundController._internal();
 
   FlutterSoundRecorder? _audioRecorder;
+  FlutterSoundPlayer? _audioPlayer;
 
   Duration _recordDuration = Duration.zero;
 
@@ -18,18 +21,22 @@ class SoundController extends ChangeNotifier {
   String get audioTime => _recordDuration.toString().split('.').first.padLeft(8, "0");
 
   VoiceState voiceState = VoiceState.none;
+  String? audioFilePath;
 
   void initAudio() async {
     _audioRecorder = FlutterSoundRecorder();
     await _audioRecorder?.openAudioSession();
+    await _audioPlayer?.openAudioSession();
   }
 
   void recordAudio() async {
     try {
       changeVoiceState(VoiceState.recording);
+      final Directory audioDirectory = await getApplicationDocumentsDirectory();
+      audioFilePath = "${audioDirectory.path}/${DateTime.now().millisecondsSinceEpoch.toString()}.wav";
       _startTimer();
       await _audioRecorder?.startRecorder(
-        toFile: "${DateTime.now().millisecondsSinceEpoch.toString()}.wav",
+        toFile: audioFilePath,
         codec: Codec.pcm16WAV,
       );
     } catch (e) {
@@ -47,6 +54,8 @@ class SoundController extends ChangeNotifier {
       _stopTimer();
 
       await _audioRecorder?.stopRecorder();
+      changeVoiceState(VoiceState.done);
+
     } catch (e) {
       changeVoiceState(VoiceState.none);
 
@@ -56,9 +65,9 @@ class SoundController extends ChangeNotifier {
     }
   }
 
-  void pauseResumeAudio(){
-    if(_audioRecorder == null) return;
-   ( _audioRecorder!.isPaused )? _resumeAudio() : _pauseAudio();
+  void pauseResumeAudio() {
+    if (_audioRecorder == null) return;
+    (_audioRecorder!.isPaused) ? _resumeAudio() : _pauseAudio();
   }
 
   void _pauseAudio() async {
@@ -111,10 +120,24 @@ class SoundController extends ChangeNotifier {
     voiceState = state;
     notifyListeners();
   }
+
+  void playAudioFile() async {
+    try {
+      await _audioPlayer?.startPlayer(
+        fromURI: audioFilePath,
+        whenFinished: () {
+          
+        },
+      );
+    } catch (e) {
+      log(e.toString());
+    }
+  }
 }
 
 enum VoiceState {
   none,
   paused,
   recording,
+  done,
 }

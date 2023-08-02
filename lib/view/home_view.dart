@@ -53,14 +53,17 @@ class _HomeViewState extends State<HomeView> {
                       if (soundController.voiceState != VoiceState.none)
                         PlayerIcon(
                           onPressed: soundController.pauseResumeAudio,
-                          icon: soundController.voiceState == VoiceState.recording
-                              ? Icons.pause
-                              : Icons.play_arrow,
+                          icon: soundController.voiceState == VoiceState.recording ? Icons.pause : Icons.play_arrow,
                         ),
                       if (soundController.voiceState != VoiceState.none)
                         PlayerIcon(
                           onPressed: soundController.stopAudio,
                           icon: Icons.stop,
+                        ),
+                      if (soundController.voiceState == VoiceState.done)
+                        PlayerIcon(
+                          onPressed: soundController.playAudioFile,
+                          icon: Icons.play_arrow,
                         ),
                     ],
                   ),
