@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
 
+import 'package:audioplayers/audioplayers.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_sound_lite/flutter_sound.dart';
 import 'package:path_provider/path_provider.dart';
@@ -14,6 +16,7 @@ class SoundController extends ChangeNotifier {
   FlutterSoundRecorder? _audioRecorder;
   FlutterSoundPlayer? _audioPlayer;
 
+  final player = AudioPlayer();
   Duration _recordDuration = Duration.zero;
 
   Timer? _timer;
@@ -55,7 +58,6 @@ class SoundController extends ChangeNotifier {
 
       await _audioRecorder?.stopRecorder();
       changeVoiceState(VoiceState.done);
-
     } catch (e) {
       changeVoiceState(VoiceState.none);
 
@@ -126,9 +128,63 @@ class SoundController extends ChangeNotifier {
       await _audioPlayer?.startPlayer(
         fromURI: audioFilePath,
         whenFinished: () {
-          
+          log("Finished playing audio");
         },
       );
+    } catch (e) {
+      log(e.toString());
+    }
+  }
+
+  /// ------ upload audio file
+  PlatformFile? _platformFile;
+
+  PlatformFile? get platformFile => _platformFile;
+
+  Future<void> uploadFile() async {
+    try {
+      FilePickerResult? filePickerResult = await FilePicker.platform.pickFiles(
+        allowCompression: true,
+        allowMultiple: false,
+        allowedExtensions: ['mp3', 'wav'],
+        type: FileType.custom,
+      );
+      if (filePickerResult == null) {
+        log("FilePickerResult is null");
+        return;
+      }
+      _platformFile = filePickerResult.files.first;
+      notifyListeners();
+    } catch (e) {
+      log(e.toString());
+    }
+  }
+
+  Future<void> playUploadedAudioFile() async {
+    try {
+      if (_platformFile?.path == null) {
+        log("_platformFile is null");
+        return;
+      }
+      await player.play(
+        DeviceFileSource(_platformFile!.path!),
+      );
+    } catch (e) {
+      log(e.toString());
+    }
+  }
+
+  Future<void> pauseUploadedAudioFile() async {
+    try {
+      await player.pause();
+    } catch (e) {
+      log(e.toString());
+    }
+  }
+
+  Future<void> stopUploadedAudioFile() async {
+    try {
+      await player.stop();
     } catch (e) {
       log(e.toString());
     }
